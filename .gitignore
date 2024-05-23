@@ -1,0 +1,6 @@
+venv
+poc-notebooks
+node_modules
+__pycache__
+dev-notes
+.env

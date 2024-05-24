@@ -1,6 +1,6 @@
 venv
-poc-notebooks
 node_modules
+notebooks
 __pycache__
 dev-notes
 .env

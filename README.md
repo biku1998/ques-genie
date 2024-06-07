@@ -1,4 +1,4 @@
-# Quesgen ai
+# QuesGenie ai
 
 Create questions that sparks curiosity from anything in minutes ✨
 

@@ -1,57 +1,211 @@
 import React from "react";
 import { useMutation } from "@tanstack/react-query";
-import { AlertCircle, RefreshCcw, Sparkles } from "lucide-react";
-import { generateMcqQuestions, generateTopics } from "./api";
+import {
+  AlertCircle,
+  Circle,
+  CircleDot,
+  CircleMinus,
+  CirclePlus,
+  RefreshCcw,
+  Sparkles,
+  Square,
+  SquareCheck,
+} from "lucide-react";
+import { generateQuestions, generateTopics } from "./api";
 import HeroSection from "./components/hero-section";
 import StepHeading from "./components/step-heading";
 import { Alert, AlertDescription } from "./components/ui/alert";
 import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "./components/ui/select";
 import { Textarea } from "./components/ui/textarea";
-import { cn } from "./lib/utils";
+import { cn, getWordCount } from "./lib/utils";
+import {
+  Question,
+  QuestionConfig,
+  Topic,
+  QuestionLevel,
+  QuestionType,
+} from "./types";
 
-const sampleTopics = [
-  {
-    id: 1,
-    topic: "Physics",
-  },
-  {
-    id: 2,
-    topic: "Mathematics",
-  },
-  {
-    id: 3,
-    topic: "Chemistry",
-  },
-  {
-    id: 4,
-    topic: "Biology",
-  },
-  {
-    id: 5,
-    topic: "History",
-  },
-  {
-    id: 6,
-    topic: "Geography",
-  },
-  {
-    id: 7,
-    topic: "Computer Science Computer Science Computer Science",
-  },
-  {
-    id: 8,
-    topic: "General Knowledge",
-  },
-];
+// const sampleTopics = [
+//   {
+//     id: 1,
+//     topic: "Physics",
+//   },
+//   {
+//     id: 2,
+//     topic: "Mathematics",
+//   },
+//   {
+//     id: 3,
+//     topic: "Chemistry",
+//   },
+//   {
+//     id: 4,
+//     topic: "Biology",
+//   },
+//   {
+//     id: 5,
+//     topic: "History",
+//   },
+//   {
+//     id: 6,
+//     topic: "Geography",
+//   },
+//   {
+//     id: 7,
+//     topic: "Computer Science Computer Science Computer Science",
+//   },
+//   {
+//     id: 8,
+//     topic: "General Knowledge",
+//   },
+// ];
+
+// const sampleQuestions = [
+//   {
+//     id: 1,
+//     topicId: 1,
+//     type: "mcq",
+//     question: "What is the capital of India?",
+//     options: [
+//       {
+//         id: 1,
+//         option: "New Delhi",
+//       },
+//       {
+//         id: 2,
+//         option: "Mumbai",
+//       },
+//       {
+//         id: 3,
+//         option: "Kolkata",
+//       },
+//       {
+//         id: 4,
+//         option: "Chennai",
+//       },
+//     ],
+//     correct_option_id: 1,
+//   },
+//   {
+//     id: 2,
+//     topicId: 1,
+//     type: "mcq",
+//     question: "What is the capital of India?",
+//     options: [
+//       {
+//         id: 1,
+//         option: "New Delhi",
+//       },
+//       {
+//         id: 2,
+//         option: "Mumbai",
+//       },
+//       {
+//         id: 3,
+//         option: "Kolkata",
+//       },
+//       {
+//         id: 4,
+//         option: "Chennai",
+//       },
+//     ],
+//     correct_option_id: 1,
+//   },
+//   {
+//     id: 3,
+//     topicId: 1,
+//     type: "mcq",
+//     question: "What is the capital of India?",
+//     options: [
+//       {
+//         id: 1,
+//         option: "New Delhi",
+//       },
+//       {
+//         id: 2,
+//         option: "Mumbai",
+//       },
+//       {
+//         id: 3,
+//         option: "Kolkata",
+//       },
+//       {
+//         id: 4,
+//         option: "Chennai",
+//       },
+//     ],
+//     correct_option_id: 1,
+//   },
+//   {
+//     id: 4,
+//     topicId: 3,
+//     type: "checkbox",
+//     question: "What is the capital of India?",
+//     options: [
+//       {
+//         id: 1,
+//         option:
+//           "New Delhi What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?",
+//       },
+//       {
+//         id: 2,
+//         option: "Mumbai",
+//       },
+//       {
+//         id: 3,
+//         option: "Kolkata",
+//       },
+//       {
+//         id: 4,
+//         option: "Chennai",
+//       },
+//     ],
+//     correct_option_ids: [1, 4],
+//   },
+//   {
+//     id: 5,
+//     topicId: 2,
+//     type: "mcq",
+//     question: "What is the capital of India?",
+//     options: [
+//       {
+//         id: 1,
+//         option: "New Delhi",
+//       },
+//       {
+//         id: 2,
+//         option: "Mumbai",
+//       },
+//       {
+//         id: 3,
+//         option: "Kolkata",
+//       },
+//       {
+//         id: 4,
+//         option:
+//           "New Delhi What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?What is the capital of India?",
+//       },
+//     ],
+//     correct_option_id: 1,
+//   },
+// ];
+
+const MIN_WORD_COUNT = 200;
 
 export default function App() {
   const [text, setText] = React.useState("");
-  const [topics, setTopics] = React.useState<
-    Array<{
-      id: number;
-      topic: string;
-    }>
-  >(sampleTopics);
+  const [topics, setTopics] = React.useState<Array<Topic>>([]);
 
   const [selectedTopicIds, setSelectedTopicIds] = React.useState<Array<number>>(
     [],
@@ -59,27 +213,10 @@ export default function App() {
 
   const [activeTopicId, setActiveTopicId] = React.useState<number | null>(null);
 
-  const [perTopicQuestionsConfig, setPerTopicQuestionsConfig] = React.useState<
-    Record<
-      number,
-      Array<{
-        count: number;
-        difficulty: "easy" | "medium" | "hard";
-        type: "mcq" | "checkbox";
-      }>
-    >
-  >();
+  const [questionConfigs, setQuestionConfigs] =
+    React.useState<Record<number, Array<QuestionConfig>>>();
 
-  const [questions, setQuestions] = React.useState<
-    Array<{
-      question: string;
-      options: Array<{
-        id: number;
-        option: string;
-      }>;
-      correct_option_id: number;
-    }>
-  >([]);
+  const [questions, setQuestions] = React.useState<Array<Question>>([]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
@@ -88,31 +225,118 @@ export default function App() {
   const generateTopicsMutation = useMutation({
     mutationFn: generateTopics,
     onSuccess: (data) => {
-      setTopics(data.topics);
+      setTopics(data);
     },
   });
 
-  const generateMcqQuestionsMutation = useMutation({
-    mutationFn: generateMcqQuestions,
+  const generateQuestionsMutation = useMutation({
+    mutationFn: generateQuestions,
     onSuccess: (data) => {
-      setQuestions(data.questions);
+      setQuestions(data);
     },
   });
 
   const handleGenerateTopicsClick = () => {
     setTopics([]);
-    // setSelectedTopics([]);
+    setSelectedTopicIds([]);
     generateTopicsMutation.mutate(text);
   };
 
-  const handleGenerateMcqQuestionsClick = () => {
-    // generateMcqQuestionsMutation.mutate({
-    //   text,
-    //   topics: selectedTopics,
-    // });
+  const handleTopicClick = (topicId: number) => {
+    setActiveTopicId(topicId);
+
+    if (questionConfigs && questionConfigs[topicId]) {
+      return;
+    }
+    addQuestionConfig(topicId);
   };
 
-  const wordCount = text.trim().split(/\s+/).length;
+  const addQuestionConfig = (topicId: number) => {
+    const topic = topics.find((t) => t.id === topicId);
+    if (!topic) return;
+
+    setQuestionConfigs((prev) => {
+      return {
+        ...prev,
+        [topicId]: [
+          ...(prev?.[topicId] ?? []),
+          {
+            count: 1,
+            level: "easy",
+            type: "mcq",
+            topic,
+          },
+        ],
+      };
+    });
+  };
+
+  const removeQuestionConfig = (topicId: number, idx: number) => {
+    setQuestionConfigs((prev) => {
+      return {
+        ...prev,
+        [topicId]: prev?.[topicId].filter((_, i) => i !== idx) ?? [],
+      };
+    });
+  };
+
+  const updateQuestionConfigCount = (
+    topicId: number,
+    idx: number,
+    count: number,
+  ) => {
+    setQuestionConfigs((prev) => {
+      return {
+        ...prev,
+        [topicId]:
+          prev?.[topicId].map((config, i) =>
+            i === idx ? { ...config, count: count > 10 ? 10 : count } : config,
+          ) ?? [],
+      };
+    });
+  };
+
+  const updateQuestionConfigLevel = (
+    topicId: number,
+    idx: number,
+    level: QuestionLevel,
+  ) => {
+    setQuestionConfigs((prev) => {
+      return {
+        ...prev,
+        [topicId]:
+          prev?.[topicId].map((config, i) =>
+            i === idx ? { ...config, level } : config,
+          ) ?? [],
+      };
+    });
+  };
+
+  const updateTopicQuestionConfigType = (
+    topicId: number,
+    idx: number,
+    type: QuestionType,
+  ) => {
+    setQuestionConfigs((prev) => {
+      return {
+        ...prev,
+        [topicId]:
+          prev?.[topicId].map((config, i) =>
+            i === idx ? { ...config, type } : config,
+          ) ?? [],
+      };
+    });
+  };
+
+  const handleGenerateQuestionsClick = () => {
+    const configs = Object.values(questionConfigs ?? {}).flatMap((c) => c);
+    generateQuestionsMutation.mutate({ text, configs });
+    if (questions.length !== 0) {
+      setQuestions([]);
+    }
+  };
+
+  const wordCount = getWordCount(text);
 
   return (
     <main className="flex flex-col">
@@ -141,14 +365,15 @@ export default function App() {
               </div>
             ) : null}
 
-            {text.length !== 0 && wordCount < 3000 ? (
+            {text.length !== 0 && wordCount < MIN_WORD_COUNT ? (
               <Alert
                 variant="destructive"
                 className="animate-in slide-in-from-top-2 w-fit"
               >
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  At least 3000 words are required to generate topics.
+                  At least {MIN_WORD_COUNT} words are required to generate
+                  topics.
                 </AlertDescription>
               </Alert>
             ) : null}
@@ -156,9 +381,15 @@ export default function App() {
           <Button
             className="bg-gradient-to-tr from-violet-600 to to-blue-600"
             onClick={handleGenerateTopicsClick}
-            disabled={wordCount < 5000 || generateTopicsMutation.isPending}
+            disabled={
+              wordCount < MIN_WORD_COUNT || generateTopicsMutation.isPending
+            }
           >
-            <Sparkles className="mr-2" size={20} />
+            {generateTopicsMutation.isPending ? (
+              <RefreshCcw className="mr-2 animate-spin" size={20} />
+            ) : (
+              <Sparkles className="mr-2" size={20} />
+            )}
             {generateTopicsMutation.isPending
               ? "Generating Topics..."
               : "Generate Topics"}
@@ -171,7 +402,7 @@ export default function App() {
               {topics.map((topic) => (
                 <Button
                   size={"sm"}
-                  key={topic.id}
+                  key={`topic-${topic.id}`}
                   className={cn(
                     "font-normal",
                     selectedTopicIds.includes(topic.id)
@@ -190,18 +421,18 @@ export default function App() {
                     });
                   }}
                 >
-                  {topic.topic}
+                  {topic.text}
                 </Button>
               ))}
             </div>
-            <Button
+            {/* <Button
               className="bg-gradient-to-tr from-violet-600 to to-blue-600 w-fit"
               onClick={handleGenerateTopicsClick}
-              // disabled={wordCount < 5000 || generateTopicsMutation.isPending}
+              disabled={wordCount < 5000 || generateTopicsMutation.isPending}
             >
               <RefreshCcw className="mr-2" size={20} />
               Regenerate
-            </Button>
+            </Button> */}
           </section>
         ) : null}
 
@@ -209,7 +440,7 @@ export default function App() {
           <section className="flex flex-col gap-6 animate-in slide-in-from-bottom-4">
             <StepHeading step={3} title="Configure questions for each topic" />
 
-            <div className="grid grid-cols-5 gap-4 border border-slate-200 rounded-lg">
+            <div className="grid grid-cols-7 gap-4 border border-slate-200 rounded-lg">
               <div className="col-span-2 border-r border-slate-200 p-4 flex flex-col gap-1">
                 {topics
                   .filter((topic) => selectedTopicIds.includes(topic.id))
@@ -224,48 +455,234 @@ export default function App() {
                           ? ""
                           : "font-normal text-slate-600",
                       )}
-                      onClick={
-                        activeTopicId === topic.id
-                          ? () => setActiveTopicId(null)
-                          : () => setActiveTopicId(topic.id)
-                      }
+                      onClick={() => handleTopicClick(topic.id)}
                     >
-                      {topic.topic}
+                      {topic.text}
                     </Button>
                   ))}
               </div>
-              <div className="col-span-3 p-4">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Count</th>
-                      <th>Difficulty</th>
-                      <th>Type</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {perTopicQuestionsConfig &&
-                      perTopicQuestionsConfig[activeTopicId!]?.map(
-                        (config, index) => (
-                          <tr key={index}>
-                            <td>{config.count}</td>
-                            <td>{config.difficulty}</td>
-                            <td>{config.type}</td>
-                          </tr>
-                        ),
-                      )}
-                  </tbody>
-                </table>
+              <div className="col-span-5 p-4">
+                {activeTopicId !== null ? (
+                  <>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-3 *:font-normal *:text-sm *:text-slate-500 *:text-left">
+                        <span className="w-[20%]">#</span>
+                        <span className="w-[35%]">Difficulty</span>
+                        <span className="w-[35%]">Type</span>
+                        <span className="w-[10%]"></span>
+                      </div>
+                      {questionConfigs
+                        ? questionConfigs[activeTopicId]
+                          ? questionConfigs[activeTopicId].map(
+                              (config, idx) => (
+                                <div
+                                  className="flex items-center gap-3 animate-in slide-in-from-top-2"
+                                  key={idx}
+                                >
+                                  <Input
+                                    type="number"
+                                    min={1}
+                                    max={10}
+                                    className="w-[20%]"
+                                    value={config.count}
+                                    onChange={(e) =>
+                                      updateQuestionConfigCount(
+                                        activeTopicId,
+                                        idx,
+                                        parseInt(e.target.value),
+                                      )
+                                    }
+                                  />
+                                  <Select
+                                    value={config.level}
+                                    onValueChange={(value) =>
+                                      updateQuestionConfigLevel(
+                                        activeTopicId,
+                                        idx,
+                                        value as "easy" | "medium" | "hard",
+                                      )
+                                    }
+                                  >
+                                    <SelectTrigger className="w-[35%]">
+                                      <SelectValue placeholder="Select difficulty" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectGroup>
+                                        <SelectLabel>Difficulty</SelectLabel>
+                                        <SelectItem value="easy">
+                                          Easy
+                                        </SelectItem>
+                                        <SelectItem value="medium">
+                                          Medium
+                                        </SelectItem>
+                                        <SelectItem value="hard">
+                                          Hard
+                                        </SelectItem>
+                                      </SelectGroup>
+                                    </SelectContent>
+                                  </Select>
+                                  <Select
+                                    value={config.type}
+                                    onValueChange={(value) =>
+                                      updateTopicQuestionConfigType(
+                                        activeTopicId,
+                                        idx,
+                                        value as "mcq" | "checkbox",
+                                      )
+                                    }
+                                  >
+                                    <SelectTrigger className="w-[35%]">
+                                      <SelectValue placeholder="Select type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectGroup>
+                                        <SelectLabel>Type</SelectLabel>
+                                        <SelectItem value="mcq">
+                                          Single choice
+                                        </SelectItem>
+                                        <SelectItem value="checkbox">
+                                          Multi choice
+                                        </SelectItem>
+                                      </SelectGroup>
+                                    </SelectContent>
+                                  </Select>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="w-[10%] text-slate-500 hover:text-red-600 hover:bg-red-50"
+                                    onClick={() =>
+                                      removeQuestionConfig(activeTopicId, idx)
+                                    }
+                                    disabled={
+                                      questionConfigs[activeTopicId].length ===
+                                      1
+                                    }
+                                  >
+                                    <CircleMinus size={16} />
+                                  </Button>
+                                </div>
+                              ),
+                            )
+                          : null
+                        : null}
+                    </div>
+                    <div className="flex items-center justify-between mt-4">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className=" font-normal text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        onClick={() => addQuestionConfig(activeTopicId)}
+                      >
+                        <CirclePlus size={16} className="text-blue-600 mr-2" />
+                        Add
+                      </Button>
+                      {questionConfigs ? (
+                        <p className="text-sm text-slate-700">
+                          <span className="font-medium">
+                            {questionConfigs[activeTopicId]
+                              ?.map((config) => config.count)
+                              .reduce((acc, curr) => acc + curr, 0)}
+                          </span>{" "}
+                          questions
+                        </p>
+                      ) : null}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-slate-600">
+                    Please select a topic
+                  </p>
+                )}
               </div>
             </div>
             <Button
               className="bg-gradient-to-tr from-violet-600 to to-blue-600"
-              onClick={handleGenerateTopicsClick}
-              // disabled={wordCount < 5000 || generateTopicsMutation.isPending}
+              onClick={handleGenerateQuestionsClick}
+              disabled={generateQuestionsMutation.isPending}
             >
-              <Sparkles className="mr-2" size={20} />
+              {generateQuestionsMutation.isPending ? (
+                <RefreshCcw className="mr-2 animate-spin" size={20} />
+              ) : (
+                <Sparkles className="mr-2" size={20} />
+              )}
               Generate Questions
             </Button>
+          </section>
+        ) : null}
+
+        {questions.length !== 0 ? (
+          <section className="flex flex-col gap-6 animate-in slide-in-from-bottom-4">
+            <StepHeading step={4} title="Discover generated questions" />
+            {topics
+              .filter((topic) => questions.some((q) => q.topic.id === topic.id))
+              .map((topic) => (
+                <div
+                  className="flex flex-col gap-3 items-start"
+                  key={`topic-${topic.id}`}
+                >
+                  <div className="px-4 py-2 rounded-lg flex items-center justify-center border border-blue-600 bg-blue-50 text-blue-600 text-sm">
+                    <span>{topic.text}</span>
+                  </div>
+                  {questions
+                    .filter((question) => question.topic.id === topic.id)
+                    .map((question) => (
+                      <div
+                        className="p-4 rounded-lg border border-slate-200 flex flex-col gap-3 w-full"
+                        key={`question-${question.id}`}
+                      >
+                        <p className="text-sm font-medium">{question.text}</p>
+                        {question.options.map((option) => (
+                          <div
+                            className="flex items-center gap-2"
+                            key={`option-${option.id}`}
+                          >
+                            {question.type === "mcq" ? (
+                              question.correctOptionId === option.id ? (
+                                <CircleDot
+                                  size={16}
+                                  className="text-green-500 shrink-0"
+                                />
+                              ) : (
+                                <Circle
+                                  size={16}
+                                  className="text-slate-400 shrink-0"
+                                />
+                              )
+                            ) : question.correctOptionIds.includes(
+                                option.id,
+                              ) ? (
+                              <SquareCheck
+                                size={16}
+                                className="text-green-500 shrink-0"
+                              />
+                            ) : (
+                              <Square
+                                size={16}
+                                className="text-slate-400 shrink-0"
+                              />
+                            )}
+                            <p
+                              className={cn(
+                                "text-sm",
+                                question.type === "mcq"
+                                  ? question.correctOptionId === option.id
+                                    ? "text-green-500"
+                                    : "text-slate-800"
+                                  : question.correctOptionIds.includes(
+                                        option.id,
+                                      )
+                                    ? "text-green-500"
+                                    : "text-slate-800",
+                              )}
+                            >
+                              {option.text}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                </div>
+              ))}
           </section>
         ) : null}
       </div>

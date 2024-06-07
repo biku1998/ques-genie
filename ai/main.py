@@ -1,14 +1,15 @@
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
-import base64
 from dotenv import load_dotenv
 import os
 import cohere
 import json
-from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 from enum import Enum
 from string import Template
+from typing import List, Literal, TypedDict
+from utils import decode_base64, get_word_count
+from prompts import prompts
 
 load_dotenv()
 
@@ -31,155 +32,100 @@ app.add_middleware(
 cohere = cohere.Client(COHERE_API_KEY)
 
 
-# models
-class ContentType(str, Enum):
-    WEB_LINK = "WEB_LINK"
-    PLAIN_TEXT = "PLAIN_TEXT"
-    TXT_DOC_LINK = "TXT_DOC_LINK"
-    PDF_LINK = "PDF_LINK"
+# models and types
+
+
+class Topic(TypedDict):
+    id: int
+    text: str
+
+
+QuestionType = Literal["mcq", "checkbox"]
+QuestionLevel = Literal["easy", "medium", "hard"]
+
+
+class Option(TypedDict):
+    id: int
+    text: str
+
+
+class QuestionBase(TypedDict):
+    id: int
+    text: str
+    topic: Topic
+    options: List[Option]
+    level: QuestionLevel
+
+
+class McqQuestion(QuestionBase):
+    type: Literal["mcq"]
+    correctOptionId: int
+
+
+class CheckboxQuestion(QuestionBase):
+    type: Literal["checkbox"]
+    correctOptionIds: List[int]
+
+
+Question = McqQuestion | CheckboxQuestion
+
+
+class QuestionConfig(TypedDict):
+    topic: Topic
+    count: int
+    level: QuestionLevel
+    type: QuestionType
 
 
 class GenerateTopicsDto(BaseModel):
-    content: str
-    count: int
-    content_type: ContentType
-
-
-class GenerateMcqQuestionsDto(BaseModel):
     text: str
-    topics: List[str]
     count: int
 
 
-# utils
-def decode_base64(data: str) -> str:
-    return base64.b64decode(data).decode("utf-8")
+class GenerateQuestionsDto(BaseModel):
+    text: str
+    configs: List[QuestionConfig]
 
 
 # services
-def generate_topics_from_text(text: str, count: int):
-    response = cohere.chat(
-        message=f"""
-    ## Instruction
-    Generate {count} high level topics from the give input text that are meaningful and captures the essence of the entire text.
+def generate_topics(text: str, count: int):
+    print(
+        f"[{generate_topics.__name__}] called with text that has length [{get_word_count(text)}] and topic count [{count}]"
+    )
 
-    The response should be in the format which will looks something like this:
-    {{
-    "topics": [
-        "topic-1",
-        "topic-2",
-        "topic-3"
-    ]
-    }}
-    
-    ## Input text
-    {text}
-    """,
+    response = cohere.chat(
+        message=prompts["generate_topics"].substitute(text=text, count=count),
         model="command-r-plus",
     )
+    responseText = response.text
 
-    response = response.text
-
-    # check if the response has a sub text
-    if "```json" in response:
+    # check if the response has json sub text
+    if "```json" in responseText:
         # replace the json code block with empty string
-        response = response.replace("```json", "").replace("```", "")
+        responseText = responseText.replace("```json", "").replace("```", "")
 
-    return response
+    return responseText
 
 
-def generate_mcq_questions(text: str, count: int, topics: List[str]):
+def generate_mcq_questions(text: str, count: int, topics: List[Topic]):
 
-    template = Template(
-        """
-    ## Instruction
-    Generate $count multiple choice questions from the given input text on the topics $topics. Make sure these **questions strictly belongs to only the listed topics**, no other topics should be included.
-
-    The number of options should vary between 3 to 8.
-    The correct answer should be one of the options.
-
-    The response should be **strictly** in the json format which will looks something like this:
-    ```json
-    {
-    "questions": [
-        {
-        "id": 1,
-        "question": "question content here",
-        "options": [
-            {
-            "id": 1,
-            "option": "option content here"
-            },
-            {
-            "id": 2,
-            "option": "option content here"
-            },
-            {
-            "id": 3,
-            "option": "option content here"
-            },
-            {
-            "id": 4,
-            "option": "option content here"
-            },
-            {
-            "id": 5,
-            "option": "option content here"
-            }
-        ],
-        "correct_option_id": 4
-        },
-        {
-        "id": 2,
-        "question": "question content here",
-        "options": [
-            {
-            "id": 1,
-            "option": "option content here"
-            },
-            {
-            "id": 2,
-            "option": "option content here"
-            },
-            {
-            "id": 3,
-            "option": "option content here"
-            },
-            {
-            "id": 4,
-            "option": "option content here"
-            },
-            {
-            "id": 5,
-            "option": "option content here"
-            }
-        ],
-        "correct_option_id": 4
-        }
-    ]
-    }
-    ```
-    
-    ## Input text
-    $text
-    """
+    prompt = prompts["generate_mcq_questions"].substitute(
+        text=text, count=count, topics=topics
     )
-
-    prompt = template.substitute(count=count, topics=", ".join(topics), text=text)
 
     response = cohere.chat(
         message=prompt,
         model="command-r-plus",
     )
 
-    response = response.text
+    responseText = response.text
 
     # check if the response has a sub text
-    if "```json" in response:
+    if "```json" in responseText:
         # replace the json code block with empty string
-        response = response.replace("```json", "").replace("```", "")
+        responseText = responseText.replace("```json", "").replace("```", "")
 
-    return response
+    return responseText
 
 
 # route handlers
@@ -190,30 +136,158 @@ def read_root():
 
 @app.post("/generate_topics")
 def generate_topics_handler(dto: GenerateTopicsDto):
+    dto.text = decode_base64(dto.text)
     print(
-        f"{generate_topics_handler.__name__} called with content_type [{dto.content_type}] and count [{dto.count}]"
+        f"[{generate_topics_handler.__name__}] called with text that has length [{get_word_count(dto.text)}] and topic count [{dto.count}]"
     )
-    if (
-        dto.content_type != ContentType.PLAIN_TEXT
-        and dto.content_type != ContentType.WEB_LINK
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid content type, it should be either {ContentType.PLAIN_TEXT} or {ContentType.WEB_LINK}",
-        )
 
-    topics = generate_topics_from_text(decode_base64(dto.content), dto.count)
+    # TODO: remove this
+    # return {
+    #     "data": [
+    #         {"id": 1, "text": "RESTful API Design"},
+    #         {"id": 2, "text": "Gmail Design Refresh"},
+    #         {"id": 3, "text": "API Versioning"},
+    #         {"id": 4, "text": "SSL and Security"},
+    #         {"id": 5, "text": "API Documentation"},
+    #         {"id": 6, "text": "Filtering, Sorting and Searching"},
+    #         {"id": 7, "text": "Field Selection and Embedding"},
+    #         {"id": 8, "text": "Pretty Printing and Gzip Compression"},
+    #         {"id": 9, "text": "Error Handling and Status Codes"},
+    #         {"id": 10, "text": "Rate Limiting and Caching"},
+    #     ]
+    # }
+
+    topics = generate_topics(dto.text, dto.count)
     topics = json.loads(topics)["topics"]
 
-    return {"topics": topics}
+    if len(topics) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Topic generation failed",
+        )
+
+    data = [{"id": idx + 1, "text": topic} for idx, topic in enumerate(topics)]
+
+    return {"data": data}
 
 
-@app.post("/generate_mcq_questions")
-def generate_mcq_questions_handler(dto: GenerateMcqQuestionsDto):
+@app.post("/generate_questions")
+def generate_questions_handler(dto: GenerateQuestionsDto):
+    dto.text = decode_base64(dto.text)
     print(
-        f"{generate_mcq_questions_handler.__name__} called with topics [{', '.join(dto.topics)}] and count [{dto.count}]"
+        f"{generate_questions_handler.__name__} called with text that has length [{get_word_count(dto.text)}] and configs [{dto.configs}]"
     )
-    questions = generate_mcq_questions(decode_base64(dto.text), dto.count, dto.topics)
-    questions = json.loads(questions)["questions"]
 
-    return {"questions": questions}
+    # return {
+    #     "data": [
+    #         {
+    #             "id": 1,
+    #             "type": "mcq",
+    #             "topic": {"id": 1, "text": "RESTful API Design"},
+    #             "text": "Which of the following is NOT a recommended practice for designing a RESTful API?",
+    #             "options": [
+    #                 {"id": 1, "text": "Use RESTful URLs and actions"},
+    #                 {"id": 2, "text": "Use SSL for all API requests"},
+    #                 {"id": 3, "text": "Include an envelope for all API responses"},
+    #                 {
+    #                     "id": 4,
+    #                     "text": "Provide clear and easily accessible documentation",
+    #                 },
+    #                 {"id": 5, "text": "Version the API to allow for iterative changes"},
+    #             ],
+    #             "correct_option_id": 3,
+    #         },
+    #         {
+    #             "id": 2,
+    #             "type": "mcq",
+    #             "topic": {"id": 1, "text": "RESTful API Design"},
+    #             "text": "What is the recommended way to handle pagination in a RESTful API?",
+    #             "options": [
+    #                 {
+    #                     "id": 1,
+    #                     "text": "Use a query parameter to specify the page number",
+    #                 },
+    #                 {
+    #                     "id": 2,
+    #                     "text": "Include pagination links in the response headers",
+    #                 },
+    #                 {
+    #                     "id": 3,
+    #                     "text": "Use a custom header to indicate the total number of pages",
+    #                 },
+    #                 {"id": 4, "text": "Return a fixed number of results per request"},
+    #                 {
+    #                     "id": 5,
+    #                     "text": "Use a combination of Link header and custom X-Total-Count header",
+    #                 },
+    #             ],
+    #             "correct_option_id": 5,
+    #         },
+    #         {
+    #             "id": 3,
+    #             "type": "mcq",
+    #             "topic": {"id": 1, "text": "RESTful API Design"},
+    #             "text": "What is the recommended way to handle authentication in a RESTful API?",
+    #             "options": [
+    #                 {"id": 1, "text": "Use OAuth 2.0 for all authentication requests"},
+    #                 {
+    #                     "id": 2,
+    #                     "text": "Use HTTP Basic Auth with randomly generated access tokens",
+    #                 },
+    #                 {
+    #                     "id": 3,
+    #                     "text": "Include authentication credentials in the request headers",
+    #                 },
+    #                 {
+    #                     "id": 4,
+    #                     "text": "Use a combination of OAuth 2.0 and access tokens for different use cases",
+    #                 },
+    #                 {"id": 5, "text": "Use session-based authentication with cookies"},
+    #             ],
+    #             "correct_option_id": 4,
+    #         },
+    #         {
+    #             "id": 4,
+    #             "type": "mcq",
+    #             "topic": {"id": 1, "text": "RESTful API Design"},
+    #             "text": "Which data format is recommended for API responses?",
+    #             "options": [
+    #                 {"id": 1, "text": "XML"},
+    #                 {"id": 2, "text": "JSON"},
+    #                 {"id": 3, "text": "CSV"},
+    #                 {"id": 4, "text": "HTML"},
+    #                 {"id": 5, "text": "YAML"},
+    #             ],
+    #             "correct_option_id": 2,
+    #         },
+    #     ]
+    # }
+
+    questions = []
+
+    mcq_question_configs = list(
+        filter(lambda config: config["type"] == "mcq", dto.configs)
+    )
+
+    if len(mcq_question_configs) > 0:
+        mcq_question_topics = list(
+            map(
+                lambda config: {
+                    "id": config["topic"]["id"],
+                    "text": config["topic"]["text"],
+                    "question_count": config["count"],
+                },
+                mcq_question_configs,
+            )
+        )
+        mcq_question_count = sum(
+            map(lambda config: config["count"], mcq_question_configs)
+        )
+
+        mcq_questions = json.loads(
+            generate_mcq_questions(dto.text, mcq_question_count, mcq_question_topics)
+        )["questions"]
+
+        questions.extend(mcq_questions)
+
+    return {"data": questions}

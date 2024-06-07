@@ -1,19 +1,17 @@
-import { encodeToBase64 } from "./lib/utils";
+import {
+  convertSnakeCaseObjectToCamelCase,
+  encodeToBase64,
+  getTopicCount,
+  getWordCount,
+} from "./lib/utils";
+import { Question, QuestionConfig, Topic } from "./types";
 
 const BASE_URL = "http://localhost:8000";
 
 export const generateTopics = async (text: string) => {
-  const wordCount = text.trim().split(/\s+/).length;
+  const wordCount = getWordCount(text);
 
-  let topicCount = 5;
-
-  if (wordCount > 3000 && wordCount <= 6000) {
-    topicCount = 10;
-  } else if (wordCount > 6000 && wordCount <= 12000) {
-    topicCount = 15;
-  } else if (wordCount > 12000 && wordCount <= 24000) {
-    topicCount = 24;
-  }
+  const topicCount = getTopicCount(wordCount);
 
   const response = await fetch(BASE_URL + "/generate_topics", {
     method: "POST",
@@ -21,9 +19,8 @@ export const generateTopics = async (text: string) => {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      content: encodeToBase64(text),
+      text: encodeToBase64(text),
       count: topicCount,
-      content_type: "PLAIN_TEXT",
     }),
   });
 
@@ -31,40 +28,35 @@ export const generateTopics = async (text: string) => {
     throw new Error("Failed to generate topics");
   }
 
-  return response.json() as Promise<{ topics: Array<string> }>;
+  const data = (await response.json()) as { data: Array<Topic> };
+  return data.data;
 };
 
-export const generateMcqQuestions = async ({
+export const generateQuestions = async ({
   text,
-  topics,
+  configs,
 }: {
   text: string;
-  topics: Array<string>;
+  configs: Array<QuestionConfig>;
 }) => {
-  const response = await fetch(BASE_URL + "/generate_mcq_questions", {
+  const response = await fetch(BASE_URL + "/generate_questions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
       text: encodeToBase64(text),
-      topics,
-      count: topics.length,
+      configs,
     }),
   });
 
   if (!response.ok) {
-    throw new Error("Failed to generate mcq questions");
+    throw new Error("Failed to generate questions");
   }
 
-  return response.json() as Promise<{
-    questions: Array<{
-      question: string;
-      options: Array<{
-        id: number;
-        option: string;
-      }>;
-      correct_option_id: number;
-    }>;
-  }>;
+  const data = (await response.json()) as { data: Array<Question> };
+
+  console.log("generate questions response", data);
+
+  return convertSnakeCaseObjectToCamelCase<Array<Question>>(data.data);
 };

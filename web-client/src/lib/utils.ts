@@ -51,3 +51,23 @@ export const convertSnakeCaseObjectToCamelCase = <T>(obj: any): T => {
     return obj;
   }
 };
+
+export const convertToCamelCase = <T>(obj: any): T => {
+  if (Array.isArray(obj)) {
+    return obj.map(convertToCamelCase) as T;
+  } else if (typeof obj === "object" && obj !== null) {
+    const result: { [key: string]: any } = {};
+    for (const key in obj) {
+      // eslint-disable-next-line no-prototype-builtins
+      if (obj.hasOwnProperty(key)) {
+        const camelKey = key.replace(/_([a-z])/g, (_, letter) =>
+          letter.toUpperCase(),
+        );
+        result[camelKey] = convertToCamelCase(obj[key]);
+      }
+    }
+    return result as T;
+  } else {
+    return obj;
+  }
+};

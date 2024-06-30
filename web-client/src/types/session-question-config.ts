@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { LEVEL, QUESTION_TYPE } from "./session-question";
+import { QUESTION_LEVEL, QUESTION_TYPE } from "./session-question";
 
-const SessionQuestionConfigSchema = z.object({
-  id: z.string().uuid(),
-  level: z.enum(LEVEL),
+export const SessionQuestionConfigSchema = z.object({
+  id: z.number(),
+  level: z.enum(QUESTION_LEVEL),
   type: z.enum(QUESTION_TYPE),
   count: z.number(),
-  topicId: z.string().uuid(),
+  topicId: z.number(),
   sessionId: z.string().uuid(),
   createdBy: z.string().uuid(),
   createdAt: z.string(),

@@ -24,9 +24,10 @@ import {
 } from "../../components/ui/form";
 import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
+import { useCreateSession } from "../mutations";
 
 const FormSchema = z.object({
-  name: z
+  title: z
     .string()
     .min(5, {
       message: "Too short! at least 5 characters.",
@@ -43,15 +44,25 @@ export default function CreateSessionDialog() {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      name: "",
+      title: "",
       description: "",
+    },
+  });
+
+  const createSessionMutation = useCreateSession({
+    onSuccess: () => {
+      form.reset();
+      setOpen(false);
     },
   });
 
   function onSubmit(data: z.infer<typeof FormSchema>) {
     if (!user) return;
-
-    alert(data);
+    createSessionMutation.mutate({
+      title: data.title,
+      description: data.description ?? null,
+      createdBy: user.id,
+    });
   }
 
   const handleAddSessionClick = () => {
@@ -83,7 +94,7 @@ export default function CreateSessionDialog() {
           >
             <FormField
               control={form.control}
-              name="name"
+              name="title"
               render={({ field }) => (
                 <FormItem className="w-full">
                   <FormControl>
@@ -110,7 +121,7 @@ export default function CreateSessionDialog() {
                 <Button
                   variant="outline"
                   className="w-full"
-                  //   disabled={createProjectMutation.isPending}
+                  disabled={createSessionMutation.isPending}
                 >
                   Cancel
                 </Button>
@@ -118,15 +129,14 @@ export default function CreateSessionDialog() {
               <Button
                 type="submit"
                 className="w-full"
-                // disabled={createProjectMutation.isPending}
+                disabled={createSessionMutation.isPending}
               >
-                {/* {createProjectMutation.isPending ? (
+                {createSessionMutation.isPending ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : null}
-                {createProjectMutation.isPending
+                {createSessionMutation.isPending
                   ? "Please wait..."
-                  : "Create project"} */}
-                Create session
+                  : "Create session"}
               </Button>
             </DialogFooter>
           </form>

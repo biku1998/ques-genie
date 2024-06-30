@@ -3,7 +3,7 @@ import { LogOut, Settings } from "lucide-react";
 import { logout } from "../auth/api";
 import { useGetUser } from "../auth/user-store";
 import { useConfirmationDialog } from "../zustand-stores";
-import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,7 +44,8 @@ export default function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger>
-        <Avatar className="border border-white hover:border-primary transition-colors duration-200">
+        <Avatar>
+          <AvatarImage src="/avatar.webp" alt="avatar" />
           <AvatarFallback>{user.email.slice(0, 2)}</AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>

@@ -21,14 +21,22 @@ const createSession = async (
   return convertToCamelCase<Session>(data);
 };
 
-export const useCreateSession = () => {
+export const useCreateSession = ({
+  onSuccess,
+}: {
+  onSuccess?: (session: Session) => void;
+} = {}) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createSession,
-    onSuccess: () => {
+    onSuccess: (session) => {
       queryClient.invalidateQueries({
         queryKey: sessionKeys.list(),
       });
+
+      if (onSuccess) {
+        onSuccess(session);
+      }
     },
   });
 };

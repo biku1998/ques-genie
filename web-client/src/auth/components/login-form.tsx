@@ -43,9 +43,9 @@ export default function LoginForm(props: LoginFormProps) {
     },
   });
 
-  function onSubmit(data: z.infer<typeof FormSchema>) {
+  const onSubmit = (data: z.infer<typeof FormSchema>) => {
     loginMutation.mutate(data);
-  }
+  };
 
   return (
     <section className="flex flex-col items-center gap-4">

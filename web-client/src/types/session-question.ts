@@ -1,15 +1,16 @@
 import { z } from "zod";
 
-export const LEVEL = ["EASY", "MEDIUM", "HARD"] as const;
-const Level = z.enum(LEVEL);
+export const QUESTION_LEVEL = ["EASY", "MEDIUM", "HARD"] as const;
+const QuestionLevel = z.enum(QUESTION_LEVEL);
 
 export const QUESTION_TYPE = ["RADIO", "CHECKBOX"] as const;
 const QuestionType = z.enum(QUESTION_TYPE);
 
 const BaseSessionQuestionSchema = z.object({
   id: z.string().uuid(),
+  sessionId: z.string().uuid(),
   text: z.string(),
-  level: Level,
+  level: QuestionLevel,
   createdBy: z.string().uuid(),
   createdAt: z.string(),
   updateAt: z.string().nullable(),
@@ -35,10 +36,11 @@ const CheckboxQuestionPayloadSchema = BaseSessionQuestionSchema.and(
   }),
 );
 
-const SessionQuestionSchema = z.union([
+export const SessionQuestionSchema = z.union([
   RadioQuestionPayloadSchema,
   CheckboxQuestionPayloadSchema,
 ]);
 
 export type SessionQuestion = z.infer<typeof SessionQuestionSchema>;
-export type Level = z.infer<typeof Level>;
+export type QuestionLevel = z.infer<typeof QuestionLevel>;
+export type QuestionType = z.infer<typeof QuestionType>;

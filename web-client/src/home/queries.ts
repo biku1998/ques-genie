@@ -8,7 +8,10 @@ import { sessionKeys } from "./query-keys";
 
 const fetchSessions = async (): Promise<Array<SessionPayload>> => {
   try {
-    const { data, error } = await supabase.from("sessions").select(`
+    const { data, error } = await supabase
+      .from("sessions")
+      .select(
+        `
         *,
         topics:session_topics (
           id
@@ -22,11 +25,13 @@ const fetchSessions = async (): Promise<Array<SessionPayload>> => {
             text
           )
         )
-        `);
+        `,
+      )
+      .order("created_at", { ascending: false });
 
     if (error) throw new Error("Failed to fetch sessions");
 
-    const sessions = convertToCamelCase<SessionPayload[]>(
+    const sessions = convertToCamelCase<Array<SessionPayload>>(
       data.map((session) =>
         _omit(
           {
@@ -37,7 +42,7 @@ const fetchSessions = async (): Promise<Array<SessionPayload>> => {
             ),
             labels: session.session_labels.map((label) => label.labels),
           },
-          ["configs"],
+          ["configs", "session_labels"],
         ),
       ),
     );
@@ -45,7 +50,7 @@ const fetchSessions = async (): Promise<Array<SessionPayload>> => {
     if (sessions.length === 0) return [];
 
     // parse the schema for type safety
-    SessionPayloadSchema.parse(sessions);
+    z.array(SessionPayloadSchema).parse(sessions);
 
     return sessions;
   } catch (error) {

@@ -6,6 +6,7 @@ import RootLayout from "./components/root-layout";
 import HomePage from "./home/pages";
 import PageNotFound from "./pages/404";
 import RootErrorPage from "./pages/root-error-page";
+import SessionPage from "./session/pages";
 
 const router = createBrowserRouter([
   {
@@ -35,6 +36,11 @@ const router = createBrowserRouter([
   {
     path: "/auth/login",
     element: <LoginPage />,
+    errorElement: <RootErrorPage />,
+  },
+  {
+    path: "/session/:id",
+    element: <SessionPage />,
     errorElement: <RootErrorPage />,
   },
   {

@@ -176,6 +176,7 @@ export type Database = {
           payload: Json;
           session_id: string;
           text: string;
+          topic_id: number;
           type: Database["public"]["Enums"]["question_type"];
           updated_at: string | null;
         };
@@ -187,6 +188,7 @@ export type Database = {
           payload: Json;
           session_id: string;
           text: string;
+          topic_id: number;
           type: Database["public"]["Enums"]["question_type"];
           updated_at?: string | null;
         };
@@ -198,6 +200,7 @@ export type Database = {
           payload?: Json;
           session_id?: string;
           text?: string;
+          topic_id?: number;
           type?: Database["public"]["Enums"]["question_type"];
           updated_at?: string | null;
         };
@@ -214,6 +217,13 @@ export type Database = {
             columns: ["session_id"];
             isOneToOne: false;
             referencedRelation: "sessions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "session_question_configs_topic_id_fkey";
+            columns: ["topic_id"];
+            isOneToOne: false;
+            referencedRelation: "session_topics";
             referencedColumns: ["id"];
           },
         ];

@@ -7,13 +7,14 @@ export const QUESTION_TYPE = ["RADIO", "CHECKBOX"] as const;
 const QuestionType = z.enum(QUESTION_TYPE);
 
 const BaseSessionQuestionSchema = z.object({
-  id: z.string().uuid(),
+  id: z.number(),
   sessionId: z.string().uuid(),
+  topicId: z.number(),
   text: z.string(),
   level: QuestionLevel,
   createdBy: z.string().uuid(),
   createdAt: z.string(),
-  updateAt: z.string().nullable(),
+  updatedAt: z.string().nullable(),
 });
 
 const RadioQuestionPayloadSchema = BaseSessionQuestionSchema.and(

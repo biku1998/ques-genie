@@ -2,9 +2,10 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Sparkles } from "lucide-react";
+import { AlertCircle, Loader2, Sparkles } from "lucide-react";
 import { z } from "zod";
 import StepHeading from "../../components/step-heading";
+import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
 import {
   Form,
@@ -120,26 +121,38 @@ function GenerateTopicStep() {
             </div>
           ) : null}
 
-          <Button
-            className="bg-gradient-to-tr from-violet-600 to to-blue-600 w-fit ml-auto"
-            type="submit"
-            disabled={
-              updateSessionSourceTextMutation.isPending ||
-              generateTopicsMutation.isPending ||
-              topicCount > 0
-            }
-          >
-            {fetchFullSessionQuery.isPending ||
-            generateTopicsMutation.isPending ? (
-              <Loader2 className="mr-2 animate-spin" size={20} />
-            ) : (
-              <Sparkles className="mr-2" size={20} />
-            )}
-            {updateSessionSourceTextMutation.isPending ||
-            generateTopicsMutation.isPending
-              ? "Generating topics..."
-              : "Generate Topics"}
-          </Button>
+          {topicCount > 0 ? null : (
+            <Button
+              className="bg-gradient-to-tr from-violet-600 to to-blue-600 w-fit ml-auto"
+              type="submit"
+              disabled={
+                updateSessionSourceTextMutation.isPending ||
+                generateTopicsMutation.isPending
+              }
+            >
+              {fetchFullSessionQuery.isPending ||
+              generateTopicsMutation.isPending ? (
+                <Loader2 className="mr-2 animate-spin" size={20} />
+              ) : (
+                <Sparkles className="mr-2" size={20} />
+              )}
+              {updateSessionSourceTextMutation.isPending ||
+              generateTopicsMutation.isPending
+                ? "Generating topics..."
+                : "Generate Topics"}
+            </Button>
+          )}
+          {topicCount > 0 ? (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Note</AlertTitle>
+              <AlertDescription>
+                You cannot modify the source text after the topics have been
+                generated. To alter the source text, please delete the existing
+                topics first.
+              </AlertDescription>
+            </Alert>
+          ) : null}
         </form>
       </Form>
     </section>

@@ -1,10 +1,15 @@
 import { type ClassValue, clsx } from "clsx";
 import { Base64 } from "js-base64";
 import { twMerge } from "tailwind-merge";
+import { v4 as uuidv4 } from "uuid";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+export const generateUUID = (): string => {
+  return uuidv4();
+};
 
 export const encodeToBase64 = (text: string): string => {
   return Base64.encode(text);
@@ -70,4 +75,28 @@ export const convertToCamelCase = <T>(obj: any): T => {
   } else {
     return obj;
   }
+};
+
+export const convertToSnakeCase = <T = any>(input: any): T => {
+  if (typeof input !== "object" || input === null) {
+    return input;
+  }
+
+  if (Array.isArray(input)) {
+    return input.map(convertToSnakeCase) as any;
+  }
+
+  const snakeCaseObject: any = {};
+
+  for (const key in input) {
+    if (Object.prototype.hasOwnProperty.call(input, key)) {
+      const snakeKey = key.replace(
+        /[A-Z]/g,
+        (match) => `_${match.toLowerCase()}`,
+      );
+      snakeCaseObject[snakeKey] = convertToSnakeCase(input[key]);
+    }
+  }
+
+  return snakeCaseObject as T;
 };

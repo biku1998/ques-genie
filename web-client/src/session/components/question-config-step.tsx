@@ -1,6 +1,6 @@
 import React from "react";
 import { useParams } from "react-router-dom";
-import { CircleMinus, CirclePlus } from "lucide-react";
+import { CircleMinus, CirclePlus, Loader2, Sparkles } from "lucide-react";
 import StepHeading from "../../components/step-heading";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -18,6 +18,7 @@ import { QuestionLevel, QuestionType } from "../../types";
 import {
   useAddQuestionConfig,
   useDeleteQuestionConfig,
+  useGenerateQuestions,
   useUpdateQuestionConfig,
 } from "../mutations";
 import { useFetchFullSession } from "../queries";
@@ -36,6 +37,15 @@ export default function QuestionConfigStep(props: QuestionConfigStepProps) {
   const addQuestionConfigMutation = useAddQuestionConfig();
   const updateQuestionConfigMutation = useUpdateQuestionConfig();
   const deleteQuestionConfigMutation = useDeleteQuestionConfig();
+  const generateQuestionsMutation = useGenerateQuestions();
+
+  React.useEffect(() => {
+    if (!activeTopicId) return;
+
+    if (selectedTopicIds[activeTopicId]) return;
+
+    setActiveTopicId(null);
+  }, [selectedTopicIds, activeTopicId]);
 
   if (fetchFullSessionQuery.isPending) {
     return <div>Loading...</div>;
@@ -196,23 +206,35 @@ export default function QuestionConfigStep(props: QuestionConfigStepProps) {
                   <CirclePlus size={16} className="text-blue-600 mr-2" />
                   Add
                 </Button>
-                {questionConfigs[activeTopicId] ? (
-                  <p className="text-sm text-slate-700">
-                    Question #{" "}
-                    <span className="font-medium">
-                      {questionConfigs[activeTopicId]
-                        ?.map((config) => config.count)
-                        .reduce((acc, curr) => acc + curr, 0)}
-                    </span>
-                  </p>
-                ) : null}
               </div>
             </>
           ) : (
-            <p className="text-sm text-slate-600">Please select a topic</p>
+            <p className="text-sm text-slate-600">
+              Please select a topic from the panel in the left
+            </p>
           )}
         </div>
       </div>
+
+      {fetchFullSessionQuery.data ? (
+        Object.keys(fetchFullSessionQuery.data.configs).length !== 0 ? (
+          <Button
+            className="bg-gradient-to-tr from-violet-600 to to-blue-600 animate-in slide-in-from-top-2"
+            onClick={() => generateQuestionsMutation.mutate(sessionId)}
+            disabled={generateQuestionsMutation.isPending}
+          >
+            {fetchFullSessionQuery.isPending ||
+            generateQuestionsMutation.isPending ? (
+              <Loader2 className="mr-2 animate-spin" size={20} />
+            ) : (
+              <Sparkles className="mr-2" size={20} />
+            )}
+            {generateQuestionsMutation.isPending
+              ? "Generating questions..."
+              : "Generate Questions"}
+          </Button>
+        ) : null
+      ) : null}
     </section>
   );
 }

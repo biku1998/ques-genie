@@ -65,12 +65,17 @@ export default function SessionPage() {
               <SelectTopicStep
                 toggleTopic={toggleTopic}
                 selectedTopicIds={selectedTopicIds}
+                setSelectedTopicIds={setSelectedTopicIds}
               />
             ) : null}
             {Object.keys(selectedTopicIds).length > 0 ? (
               <QuestionConfigStep selectedTopicIds={selectedTopicIds} />
             ) : null}
-            <DiscoverQuestionStep />
+            {fetchFullSessionQuery.data ? (
+              fetchFullSessionQuery.data.questions.length > 0 ? (
+                <DiscoverQuestionStep />
+              ) : null
+            ) : null}
           </div>
         ) : null}
       </div>

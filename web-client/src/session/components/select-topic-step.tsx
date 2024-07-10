@@ -1,5 +1,6 @@
 import { useParams } from "react-router-dom";
-import { Sparkles, Trash } from "lucide-react";
+import _omit from "lodash/omit";
+import { Sparkles, SquareDashedMousePointer, Trash } from "lucide-react";
 import StepHeading from "../../components/step-heading";
 import { Button } from "../../components/ui/button";
 import {
@@ -10,17 +11,20 @@ import {
 } from "../../components/ui/tooltip";
 import { cn } from "../../lib/utils";
 import { useConfirmationDialog } from "../../zustand-stores";
-import { useDeleteAllTopics } from "../mutations";
+import { useDeleteTopics } from "../mutations";
 import { useFetchFullSession } from "../queries";
 
 type SelectTopicStepProps = {
   toggleTopic: (topicId: number) => void;
   selectedTopicIds: Record<number, true>;
+  setSelectedTopicIds: React.Dispatch<
+    React.SetStateAction<Record<number, true>>
+  >;
 };
 
 export default function SelectTopicStep(props: SelectTopicStepProps) {
   const { id: sessionId = "" } = useParams();
-  const { toggleTopic, selectedTopicIds } = props;
+  const { toggleTopic, selectedTopicIds, setSelectedTopicIds } = props;
 
   const { openConfirmationDialog, closeConfirmationDialog } =
     useConfirmationDialog((store) => ({
@@ -29,14 +33,21 @@ export default function SelectTopicStep(props: SelectTopicStepProps) {
     }));
 
   const fetchFullSessionQuery = useFetchFullSession(sessionId);
-  const deleteAllTopicsMutation = useDeleteAllTopics();
+  const deleteTopicsMutation = useDeleteTopics({
+    onSuccess: (deletedTopicIds) => {
+      setSelectedTopicIds((prev) => _omit(prev, deletedTopicIds));
+    },
+  });
 
-  const handleDeleteAllTopicsClick = () => {
+  const handleDeleteTopicsClick = () => {
     openConfirmationDialog({
-      title: "Delete all topics",
-      content: <p>Are you sure you want to delete all generated topics?</p>,
+      title: "Delete topics",
+      content: <p>Are you sure you want to delete the selected topics?</p>,
       onConfirm: () => {
-        deleteAllTopicsMutation.mutate(sessionId);
+        deleteTopicsMutation.mutate({
+          sessionId,
+          topicIds: Object.keys(selectedTopicIds).map(Number),
+        });
         closeConfirmationDialog();
       },
       onCancel: () => {
@@ -46,6 +57,16 @@ export default function SelectTopicStep(props: SelectTopicStepProps) {
       twoFactorConfirm: true,
       twoFactorConfirmText: "delete",
     });
+  };
+
+  const handleSelectAllTopicsClick = () => {
+    if (!fetchFullSessionQuery.data) return;
+    setSelectedTopicIds(
+      fetchFullSessionQuery.data.topics.reduce(
+        (acc, topic) => ({ ...acc, [topic.id]: true }),
+        {},
+      ),
+    );
   };
 
   if (fetchFullSessionQuery.isPending) {
@@ -81,33 +102,49 @@ export default function SelectTopicStep(props: SelectTopicStepProps) {
             {topic.text}
           </Button>
         ))}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="text-slate-700"
+                onClick={handleSelectAllTopicsClick}
+              >
+                <SquareDashedMousePointer size={20} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Select all topics</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
       {fetchFullSessionQuery.data.topics.length > 0 ? (
         <div className="flex items-center gap-3">
-          <Button
-            variant="default"
-            className="bg-gradient-to-tr from-violet-600 to to-blue-600"
-          >
+          <Button className="bg-gradient-to-tr from-violet-600 to to-blue-600">
             <Sparkles className="mr-2" size={20} />
             Generate more topics
           </Button>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="bg-red-100 text-red-600 hover:text-red-600 hover:bg-red-100"
-                  onClick={handleDeleteAllTopicsClick}
-                >
-                  <Trash size={20} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Delete all generated topics</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          {Object.keys(selectedTopicIds).length > 0 ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="bg-red-100 text-red-600 hover:text-red-600 hover:bg-red-100 animate-in slide-in-from-left-2"
+                    onClick={handleDeleteTopicsClick}
+                  >
+                    <Trash size={20} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Delete selected topics</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : null}
         </div>
       ) : null}
     </section>

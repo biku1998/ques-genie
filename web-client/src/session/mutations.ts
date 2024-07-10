@@ -1,7 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import _omit from "lodash/omit";
 import { getLoggedInUserId, supabase } from "../api/supabase";
 import { sessionKeys } from "../home/query-keys";
-import { FullSessionPayload, SessionQuestionConfig } from "../types";
+import { convertToSnakeCase, generateUUID } from "../lib/utils";
+import {
+  FullSessionPayload,
+  SessionQuestion,
+  SessionQuestionConfig,
+} from "../types";
 
 const updateSessionSourceText = async ({
   id,
@@ -45,27 +51,27 @@ const generateTopics = async (sessionId: string) => {
   await supabase.from("session_topics").insert([
     {
       session_id: sessionId,
-      text: "Topic 1",
+      text: "snake-related",
       created_by: userId,
     },
     {
       session_id: sessionId,
-      text: "Topic 2",
+      text: "reptiles",
       created_by: userId,
     },
     {
       session_id: sessionId,
-      text: "Topic 3",
+      text: "mammals",
       created_by: userId,
     },
     {
       session_id: sessionId,
-      text: "Topic 4",
+      text: "insects",
       created_by: userId,
     },
     {
       session_id: sessionId,
-      text: "Topic 5",
+      text: "birds-stuff",
       created_by: userId,
     },
   ]);
@@ -84,25 +90,38 @@ export const useGenerateTopics = () => {
   });
 };
 
-const deleteAllTopics = async (sessionId: string) => {
+const deleteTopics = async ({
+  sessionId,
+  topicIds,
+}: {
+  sessionId: string;
+  topicIds: Array<number>;
+}) => {
   const { error } = await supabase
     .from("session_topics")
     .delete()
-    .eq("session_id", sessionId);
+    .eq("session_id", sessionId)
+    .in("id", topicIds);
 
   if (error)
     throw new Error(`Failed to delete topics for session ${sessionId}`);
 };
 
-export const useDeleteAllTopics = () => {
+export const useDeleteTopics = ({
+  onSuccess,
+}: {
+  onSuccess?: (deletedTopicIds: Array<number>) => void;
+} = {}) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: deleteAllTopics,
-    onSuccess: (_, sessionId) => {
+    mutationFn: deleteTopics,
+    onSuccess: (_, { sessionId, topicIds }) => {
       queryClient.invalidateQueries({
         queryKey: sessionKeys.detail(sessionId),
       });
+
+      if (onSuccess) onSuccess(topicIds);
     },
   });
 };
@@ -261,11 +280,165 @@ export const useDeleteAllQuestionConfigs = () => {
 
       queryClient.setQueryData(sessionKeys.detail(sessionId), {
         ...previousData,
-        configs: {
-          ...previousData.configs,
-          [topicId]: [],
-        },
+        configs: _omit(previousData.configs, topicId),
       });
     },
   });
 };
+
+const generateQuestions = async (sessionId: string) => {
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+
+  const userId = await getLoggedInUserId();
+
+  await supabase.from("session_questions").insert([
+    {
+      text: "Which of the following is nit a poisonous snake?",
+      level: "EASY",
+      type: "RADIO",
+      topic_id: 1,
+      session_id: sessionId,
+      created_by: userId,
+      payload: {
+        options: [
+          {
+            id: "764e1b0e-9459-40ea-a41d-a08a2e95475c",
+            text: "King Cobra",
+          },
+          {
+            id: generateUUID(),
+            text: "Krait",
+          },
+          {
+            id: generateUUID(),
+            text: "Python",
+          },
+          {
+            id: generateUUID(),
+            text: "Viper",
+          },
+        ],
+        correct_option_id: "764e1b0e-9459-40ea-a41d-a08a2e95475c",
+      },
+    },
+    {
+      text: "Which of the following is nit a poisonous snake?",
+      level: "EASY",
+      type: "RADIO",
+      session_id: sessionId,
+      topic_id: 2,
+      created_by: userId,
+      payload: {
+        options: [
+          {
+            id: "764e1b0e-9459-40ea-a41d-a08a2e95475c",
+            text: "King Cobra",
+          },
+          {
+            id: generateUUID(),
+            text: "Krait",
+          },
+          {
+            id: generateUUID(),
+            text: "Python",
+          },
+          {
+            id: generateUUID(),
+            text: "Viper",
+          },
+        ],
+        correct_option_id: "764e1b0e-9459-40ea-a41d-a08a2e95475c",
+      },
+    },
+    {
+      text: "Which of the following is nit a poisonous snake?",
+      level: "EASY",
+      type: "CHECKBOX",
+      session_id: sessionId,
+      topic_id: 3,
+      created_by: userId,
+      payload: {
+        options: [
+          {
+            id: "764e1b0e-9459-40ea-a41d-a08a2e95475c",
+            text: "King Cobra",
+          },
+          {
+            id: generateUUID(),
+            text: "Krait",
+          },
+          {
+            id: generateUUID(),
+            text: "Python",
+          },
+          {
+            id: "d7416a09-1342-4c2f-af3e-d787461e0ed5",
+            text: "Viper",
+          },
+        ],
+        correct_option_ids: [
+          "764e1b0e-9459-40ea-a41d-a08a2e95475c",
+          "d7416a09-1342-4c2f-af3e-d787461e0ed5",
+        ],
+      },
+    },
+    {
+      text: "Which of the following is nit a poisonous snake?",
+      level: "EASY",
+      type: "CHECKBOX",
+      session_id: sessionId,
+      topic_id: 4,
+      created_by: userId,
+      payload: {
+        options: [
+          {
+            id: "764e1b0e-9459-40ea-a41d-a08a2e95475c",
+            text: "King Cobra",
+          },
+          {
+            id: generateUUID(),
+            text: "Krait",
+          },
+          {
+            id: "aed58e29-9c23-4d3a-893c-13667d7c6b25",
+            text: "Python",
+          },
+          {
+            id: generateUUID(),
+            text: "Viper",
+          },
+        ],
+        correct_option_ids: [
+          "764e1b0e-9459-40ea-a41d-a08a2e95475c",
+          "aed58e29-9c23-4d3a-893c-13667d7c6b25",
+        ],
+      },
+    },
+  ]);
+};
+
+export const useGenerateQuestions = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: generateQuestions,
+    onSuccess: (_, sessionId) => {
+      queryClient.invalidateQueries({
+        queryKey: sessionKeys.detail(sessionId),
+      });
+    },
+  });
+};
+
+const upsertQuestions = async (questions: Array<SessionQuestion>) => {
+  const { error } = await supabase
+    .from("session_questions")
+    .upsert(convertToSnakeCase(questions));
+
+  if (error) throw new Error("Failed to upsert questions");
+};
+
+export const useUpsertQuestions = () =>
+  useMutation({
+    mutationFn: upsertQuestions,
+  });

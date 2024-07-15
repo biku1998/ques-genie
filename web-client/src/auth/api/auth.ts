@@ -1,4 +1,5 @@
-import { Session, User } from "@supabase/gotrue-js/src/lib/types";
+// eslint-disable-next-line import/named
+import { Session, User } from "@supabase/supabase-js";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "../../api/supabase";
 

@@ -2,7 +2,7 @@ import React from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CircleDot, Square, SquareCheck } from "lucide-react";
+import { Circle, CircleDot, Square, SquareCheck } from "lucide-react";
 import { z } from "zod";
 import StepHeading from "../../components/step-heading";
 import { Badge } from "../../components/ui/badge";
@@ -170,7 +170,13 @@ export default function DiscoverQuestionStep() {
                           );
                         }}
                       >
-                        <CircleDot size={18} />
+                        {questionsWatcher[idx].type === "RADIO" &&
+                        questionsWatcher[idx].payload.correctOptionId ===
+                          option.id ? (
+                          <CircleDot size={18} />
+                        ) : (
+                          <Circle size={18} />
+                        )}
                       </Button>
                     ) : (
                       <Button

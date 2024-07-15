@@ -1,25 +1,21 @@
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Depends
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
+from supabase import create_client, Client
 import cohere
 import json
 from fastapi.middleware.cors import CORSMiddleware
-from enum import Enum
-from string import Template
 from typing import List, Literal, TypedDict
 from utils import decode_base64, get_word_count
 from prompts import prompts
 
 load_dotenv()
 
-COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 
 app = FastAPI()
 
-origins = [
-    "http://localhost:3000",
-]
+origins: List[str] = os.getenv("CORS_ORIGINS").split(",")
 
 app.add_middleware(
     CORSMiddleware,
@@ -29,8 +25,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+COHERE_API_KEY: str = os.getenv("COHERE_API_KEY")
 cohere = cohere.Client(COHERE_API_KEY)
 
+SUPABASE_URL: str = os.getenv("SUPABASE_URL")
+SUPABASE_SERVICE_ROLE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 # models and types
 
@@ -129,33 +129,26 @@ def generate_mcq_questions(text: str, count: int, topics: List[Topic]):
 
 
 # route handlers
+
+
+def get_user_id(jwt: str):
+    user = supabase.auth.get_user(jwt)
+    print(user)
+    return user["id"]
+
+
 @app.get("/")
 def read_root():
     return {"message": "Hello World!"}
 
 
-@app.post("/generate_topics")
-def generate_topics_handler(dto: GenerateTopicsDto):
-    dto.text = decode_base64(dto.text)
+@app.post("/sessions/{session_id}/topics/generate")
+def generate_topics_handler(
+    session_id: str, current_user_id: str = Depends(get_user_id)
+):
     print(
-        f"[{generate_topics_handler.__name__}] called with text that has length [{get_word_count(dto.text)}] and topic count [{dto.count}]"
+        f"[{generate_topics_handler.__name__}] called with session_id [{session_id}] and current_user_id [{current_user_id}]"
     )
-
-    # TODO: remove this
-    # return {
-    #     "data": [
-    #         {"id": 1, "text": "RESTful API Design"},
-    #         {"id": 2, "text": "Gmail Design Refresh"},
-    #         {"id": 3, "text": "API Versioning"},
-    #         {"id": 4, "text": "SSL and Security"},
-    #         {"id": 5, "text": "API Documentation"},
-    #         {"id": 6, "text": "Filtering, Sorting and Searching"},
-    #         {"id": 7, "text": "Field Selection and Embedding"},
-    #         {"id": 8, "text": "Pretty Printing and Gzip Compression"},
-    #         {"id": 9, "text": "Error Handling and Status Codes"},
-    #         {"id": 10, "text": "Rate Limiting and Caching"},
-    #     ]
-    # }
 
     topics = generate_topics(dto.text, dto.count)
     topics = json.loads(topics)["topics"]
